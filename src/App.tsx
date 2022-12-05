@@ -1,5 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
+
+type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 
 const BOARD_DIMENSIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 const DEFAULT_SNAKE_WIDTH: [number, number][] = [
@@ -13,9 +15,7 @@ export const App = () => {
     useState<[number, number][]>(DEFAULT_SNAKE_WIDTH);
 
   // Use React state to track the current direction of the snake
-  const [snakeDirection, setSnakeDirection] = useState<
-    'UP' | 'DOWN' | 'LEFT' | 'RIGHT'
-  >('RIGHT');
+  const [snakeDirection, setSnakeDirection] = useState<Direction>('RIGHT');
 
   // Use React state to track the position of the food on the game board
   const [foodPosition, setFoodPosition] = useState<[number, number]>([5, 5]);
@@ -26,24 +26,114 @@ export const App = () => {
   // Use React state to track the current score
   const [score, setScore] = useState(0);
 
+  // Use React Ref to reference game board element
   const boardRef = useRef<HTMLTableElement>(null);
 
   // Handle user input to update the direction of the snake
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    // Update the direction of the snake based on the key that was pressed
-    if (event.key === 'ArrowUp' && snakeDirection !== 'DOWN') {
-      setSnakeDirection('UP');
-    } else if (event.key === 'ArrowDown' && snakeDirection !== 'UP') {
-      setSnakeDirection('DOWN');
-    } else if (event.key === 'ArrowLeft' && snakeDirection !== 'RIGHT') {
-      setSnakeDirection('LEFT');
-    } else if (event.key === 'ArrowRight' && snakeDirection !== 'LEFT') {
-      setSnakeDirection('RIGHT');
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      // Update the direction of the snake based on the key that was pressed
+      if (event.key === 'ArrowUp' && snakeDirection !== 'DOWN') {
+        setSnakeDirection('UP');
+      } else if (event.key === 'ArrowDown' && snakeDirection !== 'UP') {
+        setSnakeDirection('DOWN');
+      } else if (event.key === 'ArrowLeft' && snakeDirection !== 'RIGHT') {
+        setSnakeDirection('LEFT');
+      } else if (event.key === 'ArrowRight' && snakeDirection !== 'LEFT') {
+        setSnakeDirection('RIGHT');
+      }
+    },
+    [snakeDirection]
+  );
+
+  // Check if the snake has eaten a piece of food
+  const hasSnakeEatenFood = useCallback(() => {
+    return (
+      snakePosition[0][0] === foodPosition[0] &&
+      snakePosition[0][1] === foodPosition[1]
+    );
+  }, [foodPosition, snakePosition]);
+
+  // Grow the snake by adding a new cell to its tail
+  const growSnake = useCallback(() => {
+    if (!hasSnakeEatenFood()) return;
+
+    // Calculate the new position of the tail of the snake
+    const currentTail = snakePosition[snakePosition.length - 1];
+    const newTailPosition = [currentTail[0], currentTail[1]];
+
+    // Update the position of the tail based on its current direction
+    if (currentTail[0] < snakePosition[snakePosition.length - 2][0]) {
+      newTailPosition[0] -= 1;
+    } else if (currentTail[0] > snakePosition[snakePosition.length - 2][0]) {
+      newTailPosition[0] += 1;
+    } else if (currentTail[1] < snakePosition[snakePosition.length - 2][1]) {
+      newTailPosition[1] -= 1;
+    } else if (currentTail[1] > snakePosition[snakePosition.length - 2][1]) {
+      newTailPosition[1] += 1;
     }
-  };
+
+    // Add the new tail position to the snakePosition array
+    const newSnakePosition: [number, number][] = [
+      ...snakePosition,
+      [newTailPosition[0], newTailPosition[1]],
+    ];
+    setSnakePosition(newSnakePosition);
+  }, [hasSnakeEatenFood, snakePosition]);
+
+  // Check if the given position is occupied by the snake
+  const isPositionOccupied = useCallback(
+    (position: [number, number]) =>
+      snakePosition.some(([x, y]) => x === position[0] && y === position[1]),
+    [snakePosition]
+  );
+
+  // Generate a new piece of food on the game board
+  const generateFood = useCallback(() => {
+    // Keep generating random positions for the food until a valid position is found is found
+    let newFoodPosition: [number, number];
+    do {
+      newFoodPosition = [
+        Math.floor(Math.random() * 10),
+        Math.floor(Math.random() * 10),
+      ];
+    } while (isPositionOccupied(newFoodPosition));
+
+    // Update the position of the food in the React state
+    setFoodPosition(newFoodPosition);
+  }, [isPositionOccupied]);
+
+  // End the game
+  const endGame = useCallback(() => {
+    // Update the gameOver state
+    setGameOver(true);
+  }, []);
+
+  // Check if the snake has hit the edge of the game board
+  const hasSnakeHitWall = useCallback(() => {
+    const currentHead = snakePosition[0];
+
+    return (
+      currentHead[0] < 0 ||
+      currentHead[0] >= 10 ||
+      currentHead[1] < 0 ||
+      currentHead[1] >= 10
+    );
+  }, [snakePosition]);
+
+  // Check if the snake has collided with itself
+  const hasSnakeHitItself = useCallback(() => {
+    const snakeBody = snakePosition.slice(1);
+
+    return snakeBody.some(
+      (position) =>
+        position[0] === snakePosition[0][0] &&
+        position[1] === snakePosition[0][1]
+    );
+  }, [snakePosition]);
 
   // Move the snake on the game board
-  const moveSnake = () => {
+  const moveSnake = useCallback(() => {
     // Calculate the new position of the snake based on its current position and direction
     const newPosition = [...snakePosition];
     const currentHead = newPosition[0];
@@ -82,91 +172,27 @@ export const App = () => {
       // Increment the score
       setScore(score + 1);
     }
-  };
-
-  // Check if the snake has hit the edge of the game board
-  const hasSnakeHitWall = () => {
-    const currentHead = snakePosition[0];
-
-    return (
-      currentHead[0] < 0 ||
-      currentHead[0] >= 10 ||
-      currentHead[1] < 0 ||
-      currentHead[1] >= 10
-    );
-  };
-
-  // Check if the snake has collided with itself
-  const hasSnakeHitItself = () => {
-    const snakeBody = snakePosition.slice(1);
-
-    return snakeBody.some(
-      (position) =>
-        position[0] === snakePosition[0][0] &&
-        position[1] === snakePosition[0][1]
-    );
-  };
+  }, [
+    endGame,
+    generateFood,
+    growSnake,
+    hasSnakeEatenFood,
+    hasSnakeHitItself,
+    hasSnakeHitWall,
+    score,
+    snakeDirection,
+    snakePosition,
+  ]);
 
   // Reset the game
-  const resetGame = () => {
+  const resetGame = useCallback(() => {
     setSnakePosition(DEFAULT_SNAKE_WIDTH);
     setSnakeDirection('RIGHT');
-    setFoodPosition([5, 5]);
+    generateFood();
     setGameOver(false);
     setScore(0);
     boardRef.current && boardRef.current.focus();
-  };
-
-  // Check if the snake has eaten a piece of food
-  const hasSnakeEatenFood = () => {
-    return (
-      snakePosition[0][0] === foodPosition[0] &&
-      snakePosition[0][1] === foodPosition[1]
-    );
-  };
-
-  // Grow the snake by adding a new cell to its tail
-  const growSnake = () => {
-    if (!hasSnakeEatenFood()) return;
-
-    // Calculate the new position of the tail of the snake
-    const currentTail = snakePosition[snakePosition.length - 1];
-    const newTailPosition = [currentTail[0], currentTail[1]];
-
-    // Update the position of the tail based on its current direction
-    if (currentTail[0] < snakePosition[snakePosition.length - 2][0]) {
-      newTailPosition[0] -= 1;
-    } else if (currentTail[0] > snakePosition[snakePosition.length - 2][0]) {
-      newTailPosition[0] += 1;
-    } else if (currentTail[1] < snakePosition[snakePosition.length - 2][1]) {
-      newTailPosition[1] -= 1;
-    } else if (currentTail[1] > snakePosition[snakePosition.length - 2][1]) {
-      newTailPosition[1] += 1;
-    }
-
-    // Add the new tail position to the snakePosition array
-    const newSnakePosition: [number, number][] = [
-      ...snakePosition,
-      [newTailPosition[0], newTailPosition[1]],
-    ];
-    setSnakePosition(newSnakePosition);
-  };
-
-  // Generate a new piece of food on the game board
-  const generateFood = () => {
-    // Generate a random x and y coordinate for the food
-    const x = Math.floor(Math.random() * 10);
-    const y = Math.floor(Math.random() * 10);
-
-    // Update the position of the food in the React state
-    setFoodPosition([x, y]);
-  };
-
-  // End the game
-  const endGame = () => {
-    // Update the gameOver state
-    setGameOver(true);
-  };
+  }, [generateFood]);
 
   // Use the useEffect hook to move the snake on the game board
   useEffect(() => {
@@ -175,7 +201,7 @@ export const App = () => {
       if (!gameOver) {
         moveSnake();
       }
-    }, 100);
+    }, 150);
 
     if (gameOver) {
       clearInterval(interval);
@@ -183,8 +209,7 @@ export const App = () => {
 
     // Clear the interval when the component unmounts
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [snakePosition, snakeDirection]);
+  }, [snakePosition, snakeDirection, gameOver, moveSnake]);
 
   return (
     <div className='app'>
