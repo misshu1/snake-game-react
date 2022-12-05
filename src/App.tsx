@@ -87,6 +87,7 @@ export const App = () => {
   // Check if the snake has hit the edge of the game board
   const hasSnakeHitWall = () => {
     const currentHead = snakePosition[0];
+
     return (
       currentHead[0] < 0 ||
       currentHead[0] >= 10 ||
@@ -98,13 +99,7 @@ export const App = () => {
   // Check if the snake has collided with itself
   const hasSnakeHitItself = () => {
     const snakeBody = snakePosition.slice(1);
-    console.log(
-      snakeBody.some(
-        (position) =>
-          position[0] === snakePosition[0][0] &&
-          position[1] === snakePosition[0][1]
-      )
-    );
+
     return snakeBody.some(
       (position) =>
         position[0] === snakePosition[0][0] &&
@@ -199,14 +194,7 @@ export const App = () => {
           {BOARD_DIMENSIONS.map((row) => (
             <tr key={row}>
               {BOARD_DIMENSIONS.map((column) => (
-                <td
-                  key={column}
-                  style={{
-                    width: '50px',
-                    height: '50px',
-                    padding: '0',
-                  }}
-                >
+                <td key={column}>
                   {/* Render the snake on the game board */}
                   {snakePosition.some(
                     ([x, y]) => x === column && y === row
