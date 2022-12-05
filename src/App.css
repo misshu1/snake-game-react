@@ -1,38 +1,61 @@
-.App {
-  text-align: center;
+* {
+    box-sizing: border-box;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+
+table {
+    box-shadow: 0px 0px 9px 3px rgba(0,0,0,0.75);
+    outline: none;
+    margin: 0 auto;
+    background-color: #95bc8d;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.cube {
+    border: 2px solid;
+    position: relative;
+    width: 100%;
+    height: 100%;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.snake {
+    background-color: #383631;
+    border-color: #383631;
 }
 
-.App-link {
-  color: #61dafb;
+.food {
+    background-color: #dd0613;
+    border-color: #dd0613;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.cube:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    box-shadow: inset 0px 0px 0px 3px #ecf0ea;
+}
+
+.game-over {
+    text-align: center;
+    margin-top: 2rem;
+    font-weight: bold;
+    font-size: 20px;
+}
+
+button {
+    background-color: #009bce;
+    cursor: pointer;
+    color: #fff;
+    padding: 6px 8px;
+    min-width: 64px;
+    text-transform: uppercase;
+    border: none;
+    line-height: 1.75;
+    border-radius: 4px;
+}
+
+button:hover {
+    background-color: #0668c9;
 }
